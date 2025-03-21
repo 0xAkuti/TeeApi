@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 ARG PYTHON_VERSION=3.11
 FROM python:${PYTHON_VERSION}-slim-bookworm AS builder
 
@@ -65,11 +63,9 @@ ENV HOSTNAME="0.0.0.0"
 ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
 
 # Set default values for Oracle configuration
-ENV WEB3_PROVIDER=""
-ENV ORACLE_ADDRESS=""
-ENV PRIVATE_KEY=""
-ENV POLL_INTERVAL=10
-ENV MAX_RETRIES=3
+ENV WEB3_PROVIDER="http://host.docker.internal:8545"
+ENV ORACLE_ADDRESS="0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35"
+ENV POLL_INTERVAL=5
 
 # Run the application.
-CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=3000"]
+CMD ["python", "main.py"]
