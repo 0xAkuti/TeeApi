@@ -34,7 +34,9 @@ class ApiClient:
     
     async def make_request(self, request: RequestData) -> ApiResponse:
         """Make an API request"""
-        logger.info(f"Making {request.method.name} request to {request.url}")
+        # Get the full URL with query parameters
+        url = request.get_full_url()
+        logger.info(f"Making {request.method.name} request to {url}")
         
         # Prepare headers
         headers = request.get_headers_dict()
@@ -49,7 +51,7 @@ class ApiClient:
                 
                 # For GET and DELETE requests
                 if request.method in [HttpMethod.GET, HttpMethod.DELETE]:
-                    async with method_func(request.url, headers=headers) as response:
+                    async with method_func(url, headers=headers) as response:
                         return await self._process_response(response)
                 
                 # For POST, PUT, PATCH requests
@@ -77,18 +79,18 @@ class ApiClient:
                         kwargs['data'] = body_data
                     
                     # Make the request
-                    async with method_func(request.url, **kwargs) as response:
+                    async with method_func(url, **kwargs) as response:
                         return await self._process_response(response)
         
         except asyncio.TimeoutError:
-            logger.error(f"Request to {request.url} timed out after {self.timeout} seconds")
+            logger.error(f"Request to {url} timed out after {self.timeout} seconds")
             return ApiResponse(
                 success=False,
                 error=f"Request timed out after {self.timeout} seconds"
             )
         
         except Exception as e:
-            logger.error(f"Error making request to {request.url}: {str(e)}", exc_info=True)
+            logger.error(f"Error making request to {url}: {str(e)}", exc_info=True)
             return ApiResponse(
                 success=False,
                 error=f"Request failed: {str(e)}"
