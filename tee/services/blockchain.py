@@ -164,32 +164,47 @@ class BlockchainService:
                 response_data
             ).build_transaction({
                 'from': None,  # Will be filled by dstack
-                'gas': 500000,
+                'gas': 500000, # TODO estimate or get from request and how much was paid for callback gas
                 'maxFeePerGas': await self.web3.eth.gas_price,
-                'nonce': None,  # Will be filled by dstack
+                'maxPriorityFeePerGas': Web3.to_wei(1, 'gwei'),  # Add priority fee, maybe estimate as well
+                'nonce': None,  # Will be filled later
+                'chainId': await self.web3.eth.chain_id,
+                'value': 0
             })
             
             # Sign transaction within the TEE
             derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
-            asBytes = derive_key.toBytes()
-            assert isinstance(asBytes, bytes)
-            limitedSize = derive_key.toBytes(32)
+            private_key_bytes = derive_key.toBytes(32)  # Get limited private key bytes
             
-            # TODO: Need to implement transaction sending through dstack
-            # This is a placeholder until the dstack API is better understood
+            # overwrite for testing, TODO remove later
+            private_key_bytes = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97" # anivl key
             
-            # For now, log the transaction data
+            # Get account from private key
+            account = self.web3.eth.account.from_key(private_key_bytes)
+            logger.info(f"Derived address: {account.address}")
+            
+            # Set the from address in the transaction
+            tx_data['from'] = account.address
+            
+            # Get the nonce for the account
+            tx_data['nonce'] = await self.web3.eth.get_transaction_count(account.address)
+            
+            # Log transaction data
             logger.info(f"Transaction data: {tx_data}")
-            logger.info(f"Would sign with derive key: {asBytes.hex()}")
-            logger.info(f"Key limited to 32 bytes: {limitedSize.hex()}")
             
-            # Get address from private key bytes
-            account = self.web3.eth.account.from_key(limitedSize)
-            address = account.address
-            logger.info(f"Derived address: {address}")
+            # Sign the transaction
+            signed_tx = self.web3.eth.account.sign_transaction(tx_data, private_key_bytes)
             
-            # Return a dummy receipt for now
-            return {"transactionHash": "0x0"}
+            # Send the raw transaction
+            tx_hash = await self.web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            logger.info(f"Transaction submitted with hash: {Web3.to_hex(tx_hash)}")
+            
+            # Wait for transaction receipt
+            receipt = await self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+            logger.info(f"Transaction confirmed in block {receipt['blockNumber']}")
+            
+            # Return the transaction receipt
+            return receipt
             
         except Exception as e:
             logger.error(f"Error submitting response: {str(e)}", exc_info=True)
