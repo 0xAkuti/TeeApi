@@ -26,14 +26,6 @@ contract Oracle is IOracle, OwnableRoles {
     mapping(bytes32 => uint256) internal requestStatus;
 
     /**
-     * @dev Modifier to ensure a request is not already fulfilled
-     */
-    modifier notFulfilled(bytes32 requestId) {
-        require(requestStatus[requestId] == REQUEST_ACTIVE, "Request not active");
-        _;
-    }
-
-    /**
      * @dev Constructor
      * @param _requestFee Initial fee for making a request
      */
@@ -48,8 +40,12 @@ contract Oracle is IOracle, OwnableRoles {
      * @return requestId Unique identifier for the request
      */
     function requestRestApi(Request calldata request) external payable virtual returns (bytes32 requestId) {
-        require(msg.value >= requestFee, "Insufficient fee");
-        require(msg.sender.code.length > 0, "Requester must be a contract");
+        if (msg.value < requestFee) {
+            revert InvalidFee();
+        }
+        if (msg.sender.code.length == 0) {
+            revert InvalidRequester();
+        }
 
         requestId = _generateRequestId(msg.sender, request);
 
@@ -72,12 +68,12 @@ contract Oracle is IOracle, OwnableRoles {
         virtual
         override
         onlyRoles(ROLE_TEE)
-        notFulfilled(requestId)
         returns (bool)
     {
+        if (requestStatus[requestId] == REQUEST_INACTIVE) {
+            revert RequestNotActive();
+        }
         address requester = _getRequester(requestId);
-
-        require(requester != address(0) && requester.code.length > 0, "Invalid requester");
 
         requestStatus[requestId] = REQUEST_INACTIVE; // get gas refund
 
@@ -114,12 +110,10 @@ contract Oracle is IOracle, OwnableRoles {
     }
 
     /**
-     * @dev Withdraw fees collected by the oracle
-     * @param recipient The address to send the fees to
+     * @dev Withdraw fees collected by the oracle to the owner
      */
-    function withdraw(address payable recipient) external onlyOwner {
-        require(recipient != address(0), "Invalid recipient address");
-        SafeTransferLib.safeTransferAllETH(recipient);
+    function withdraw() external onlyOwner {
+        SafeTransferLib.safeTransferAllETH(owner());
     }
 
     /**

@@ -6,6 +6,10 @@ pragma solidity ^0.8.19;
  * @dev Interface for the Oracle contract that handles REST API requests
  */
 interface IOracle {
+    error RequestNotActive();
+    error InvalidFee();
+    error InvalidRequester();
+
     /**
      * @dev Enum representing HTTP methods
      */
