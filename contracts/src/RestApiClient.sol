@@ -27,7 +27,7 @@ abstract contract RestApiClient is IRestApiConsumer {
     event ApiResponseReceived(bytes32 indexed requestId, bool success);
 
     modifier onlyOracle() {
-        if (msg.sender != oracle) revert Unauthorized();
+        if (msg.sender != address(oracle)) revert Unauthorized();
         _;
     }
 
