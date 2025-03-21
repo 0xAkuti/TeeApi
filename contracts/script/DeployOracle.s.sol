@@ -11,7 +11,7 @@ import "../src/Oracle.sol";
  */
 contract DeployOracle is Script {
     // Address that will be granted the TEE role
-    address constant TEE_ADDRESS = 0x8f5b2B7608e3E3a3Dc0426C3396420FbA8D682d5;
+    address constant TEE_ADDRESS = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
 
     function run() external {
         // Start broadcast to record and send transactions

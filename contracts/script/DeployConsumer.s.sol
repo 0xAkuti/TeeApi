@@ -11,6 +11,8 @@ import "../src/Oracle.sol";
  * @dev Script to deploy the ExampleConsumer contract
  */
 contract DeployConsumer is Script {
+    address constant TEE = 0xf3D21A3A689AD889541d993A51e3109aC3E36c12;
+
     function run() external {
         // Get the Oracle address from command line or environment variable
         address oracleAddress = vm.envOr("ORACLE_ADDRESS", 0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35);
