@@ -42,10 +42,10 @@ contract ExampleConsumer is RestApiClient {
 
         // Create response fields to extract from the JSON
         IOracle.ResponseField[] memory responseFields = new IOracle.ResponseField[](4);
-        responseFields[0] = IOracle.ResponseField({path: "$.id", responseType: "uint256"});
-        responseFields[1] = IOracle.ResponseField({path: "$.userId", responseType: "uint256"});
-        responseFields[2] = IOracle.ResponseField({path: "$.completed", responseType: "bool"});
-        responseFields[3] = IOracle.ResponseField({path: "$.title", responseType: "string"});
+        responseFields[0] = IOracle.ResponseField({path: "$[0].id", responseType: "uint256"});
+        responseFields[1] = IOracle.ResponseField({path: "$[0].userId", responseType: "uint256"});
+        responseFields[2] = IOracle.ResponseField({path: "$[0].completed", responseType: "bool"});
+        responseFields[3] = IOracle.ResponseField({path: "$[0].title", responseType: "string"});
 
         // Create query parameters
         IOracle.KeyValue[] memory queryParams = new IOracle.KeyValue[](1);
