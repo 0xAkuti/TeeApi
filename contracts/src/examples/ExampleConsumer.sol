@@ -10,8 +10,8 @@ import {IOracle} from "../interfaces/IOracle.sol";
 contract ExampleConsumer is RestApiClient {
     // Structure to store userdata
     struct TODOData {
-        uint64 id;
-        uint64 userId;
+        uint256 id;
+        uint256 userId;
         bool completed;
         string title;
     }
@@ -74,13 +74,13 @@ contract ExampleConsumer is RestApiClient {
         require(success, "API request failed");
 
         // Decode the response data
-        (uint256 id, uint256 userId, string memory title, bool completed) =
-            abi.decode(data, (uint256, uint256, string, bool));
+        (uint256 id, uint256 userId, bool completed, string memory title) =
+            abi.decode(data, (uint256, uint256, bool, string));
 
-        // Convert to smaller types to save gas
-        uint64 id_ = uint64(id);
-        uint64 userId_ = uint64(userId);
+        lastTODOData = TODOData({id: id, userId: userId, title: title, completed: completed});
+    }
 
-        lastTODOData = TODOData({id: id_, userId: userId_, title: title, completed: completed});
+    function getLastTODOData() public view returns (TODOData memory) {
+        return lastTODOData;
     }
 }
