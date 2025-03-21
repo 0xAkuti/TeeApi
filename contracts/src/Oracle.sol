@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "./interfaces/IOracle.sol";
-import "./interfaces/IRestApiConsumer.sol";
-import "solady/auth/OwnableRoles.sol";
-import "solady/utils/SafeTransferLib.sol";
+import {OwnableRoles} from "solady/auth/OwnableRoles.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+
+import {IOracle} from "./interfaces/IOracle.sol";
+import {IRestApiConsumer} from "./interfaces/IRestApiConsumer.sol";
 
 /**
  * @title Oracle
