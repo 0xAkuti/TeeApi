@@ -71,10 +71,10 @@ class ResponseProcessor:
                 ))
         else:
             # Process each JSONPath expression
-            for field_path in request_event.request.responseFields:
+            for field in request_event.request.responseFields:
                 try:
                     # Parse and apply the JSONPath expression
-                    jsonpath_expr = jsonpath_ng.parse(field_path)
+                    jsonpath_expr = jsonpath_ng.parse(field.path)
                     matches = [match.value for match in jsonpath_expr.find(raw_data)]
                     
                     if matches:
@@ -84,22 +84,22 @@ class ResponseProcessor:
                         type_hint = self._get_type_hint(value)
                         
                         results.append(ExtractionResult(
-                            path=field_path,
+                            path=field.path,
                             value=value,
                             type_hint=type_hint
                         ))
                     else:
-                        logger.warning(f"No matches found for JSONPath: {field_path}")
+                        logger.warning(f"No matches found for JSONPath: {field.path}")
                         results.append(ExtractionResult(
-                            path=field_path,
+                            path=field.path,
                             value=None,
                             type_hint=None
                         ))
                 
                 except Exception as e:
-                    logger.error(f"Error extracting field {field_path}: {str(e)}", exc_info=True)
+                    logger.error(f"Error extracting field path='{field.path}' responseType='{field.responseType}': {str(e)}", exc_info=True)
                     results.append(ExtractionResult(
-                        path=field_path,
+                        path=field.path,
                         value=None,
                         type_hint=None
                     ))

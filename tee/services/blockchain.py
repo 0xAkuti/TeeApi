@@ -159,7 +159,7 @@ class BlockchainService:
             request_id_bytes = Web3.to_bytes(hexstr=request_id)
             
             # Create transaction data
-            tx_data = self.oracle_contract.functions.fulfillRestApiRequest(
+            tx_data = await self.oracle_contract.functions.fulfillRestApiRequest(
                 request_id_bytes,
                 response_data
             ).build_transaction({
@@ -171,13 +171,22 @@ class BlockchainService:
             
             # Sign transaction within the TEE
             derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
+            asBytes = derive_key.toBytes()
+            assert isinstance(asBytes, bytes)
+            limitedSize = derive_key.toBytes(32)
             
             # TODO: Need to implement transaction sending through dstack
             # This is a placeholder until the dstack API is better understood
             
             # For now, log the transaction data
             logger.info(f"Transaction data: {tx_data}")
-            logger.info(f"Would sign with derive key: {derive_key.key_id}")
+            logger.info(f"Would sign with derive key: {asBytes.hex()}")
+            logger.info(f"Key limited to 32 bytes: {limitedSize.hex()}")
+            
+            # Get address from private key bytes
+            account = self.web3.eth.account.from_key(limitedSize)
+            address = account.address
+            logger.info(f"Derived address: {address}")
             
             # Return a dummy receipt for now
             return {"transactionHash": "0x0"}
