@@ -145,9 +145,6 @@ contract Oracle is IOracle, OwnableRoles {
      */
     function _getRequester(bytes32 requestId) internal pure returns (address requester) {
         // Extract the first 20 bytes (address) from the requestId
-        bytes32 shifted = requestId << 96;
-        requester = address(uint160(uint256(shifted >> 96)));
-
-        return requester;
+        return address(uint160(uint256(requestId) >> 96));
     }
 }
