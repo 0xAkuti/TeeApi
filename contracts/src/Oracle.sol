@@ -5,7 +5,6 @@ import "./interfaces/IOracle.sol";
 import "./interfaces/IRestApiConsumer.sol";
 import "solady/auth/OwnableRoles.sol";
 import "solady/utils/SafeTransferLib.sol";
-import "./libraries/ResponseLib.sol";
 
 /**
  * @title Oracle
@@ -75,23 +74,25 @@ contract Oracle is IOracle, OwnableRoles {
         notFulfilled(requestId)
         returns (bool)
     {
-        address requester = ResponseLib.recoverRequester(requestId);
+        address requester = _getRequester(requestId);
 
         require(requester != address(0) && requester.code.length > 0, "Invalid requester");
 
         requestStatus[requestId] = REQUEST_INACTIVE; // get gas refund
 
-        // Process the response and call the callback on the requester
-        bool success = ResponseLib.executeCallback(
-            requester,
-            requestId,
-            true, // Assuming success for Phase 1
-            responseData
-        );
+        bool callbackSuccess;
+        // TODO for now assume the API request was successful, but it should report the actual response
+        // maybe even the HTTP error code
+        try IRestApiConsumer(requester).handleApiResponse({requestId: requestId, success: true, data: responseData}) {
+            callbackSuccess = true;
+        } catch {
+            callbackSuccess = false;
+        }
 
-        emit RestApiResponse(requestId, success);
+        // Emit response event
+        emit RestApiResponse(requestId, callbackSuccess);
 
-        return success;
+        return callbackSuccess;
     }
 
     /**
@@ -140,5 +141,18 @@ contract Oracle is IOracle, OwnableRoles {
         // Combine both parts for the final ID
         // High 20 bytes = requester, Low 12 bytes = request hash + block data
         return requesterPart | (requestPart & 0x0000000000000000000000000000000000000000ffffffffffffffffffffffff);
+    }
+
+    /**
+     * @dev Recovers the requester address from the request ID
+     * @param requestId The request ID
+     * @return requester The address of the requester
+     */
+    function _getRequester(bytes32 requestId) internal pure returns (address requester) {
+        // Extract the first 20 bytes (address) from the requestId
+        bytes32 shifted = requestId << 96;
+        requester = address(uint160(uint256(shifted >> 96)));
+
+        return requester;
     }
 }

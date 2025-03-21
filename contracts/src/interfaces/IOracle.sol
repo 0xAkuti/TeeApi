@@ -64,9 +64,9 @@ interface IOracle {
     /**
      * @dev Event emitted when a response is fulfilled
      * @param requestId Unique identifier for the original request
-     * @param success Whether the request was successful
+     * @param callbackSuccess Whether the request callback was successful
      */
-    event RestApiResponse(bytes32 indexed requestId, bool success);
+    event RestApiResponse(bytes32 indexed requestId, bool callbackSuccess);
 
     /**
      * @dev Submit a REST API request
