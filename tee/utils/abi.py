@@ -25,6 +25,8 @@ def load_contract_json(contract_name: str) -> Dict[str, Any]:
         Path("../contracts/out") / f"{contract_name}.sol" / f"{contract_name}.json",
         # Path if running from the project root
         Path("contracts/out") / f"{contract_name}.sol" / f"{contract_name}.json",
+        # also check the abis directory
+        Path("./utils/abis") / f"{contract_name}.json",
     ]
     
     # Try to find the file
