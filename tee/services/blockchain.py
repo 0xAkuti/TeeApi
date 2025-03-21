@@ -155,23 +155,6 @@ class BlockchainService:
         logger.info(f"Submitting response for request {request_id}")
         
         try:
-            # Use dstack to sign and send the transaction
-            request_id_bytes = Web3.to_bytes(hexstr=request_id)
-            
-            # Create transaction data
-            tx_data = await self.oracle_contract.functions.fulfillRestApiRequest(
-                request_id_bytes,
-                response_data
-            ).build_transaction({
-                'from': None,  # Will be filled by dstack
-                'gas': 500000, # TODO estimate or get from request and how much was paid for callback gas
-                'maxFeePerGas': await self.web3.eth.gas_price,
-                'maxPriorityFeePerGas': Web3.to_wei(1, 'gwei'),  # Add priority fee, maybe estimate as well
-                'nonce': None,  # Will be filled later
-                'chainId': await self.web3.eth.chain_id,
-                'value': 0
-            })
-            
             # Sign transaction within the TEE
             derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
             private_key_bytes = derive_key.toBytes(32)  # Get limited private key bytes
@@ -183,11 +166,22 @@ class BlockchainService:
             account = self.web3.eth.account.from_key(private_key_bytes)
             logger.info(f"Derived address: {account.address}")
             
-            # Set the from address in the transaction
-            tx_data['from'] = account.address
+            # Use dstack to sign and send the transaction
+            request_id_bytes = Web3.to_bytes(hexstr=request_id)
             
-            # Get the nonce for the account
-            tx_data['nonce'] = await self.web3.eth.get_transaction_count(account.address)
+            # Create transaction data
+            tx_data = await self.oracle_contract.functions.fulfillRestApiRequest(
+                request_id_bytes,
+                response_data
+            ).build_transaction({
+                'from': account.address, 
+                'gas': 500000, # TODO estimate or get from request and how much was paid for callback gas
+                'maxFeePerGas': await self.web3.eth.gas_price,
+                'maxPriorityFeePerGas': Web3.to_wei(1, 'gwei'),  # Add priority fee, maybe estimate as well
+                'nonce': await self.web3.eth.get_transaction_count(account.address),
+                'chainId': await self.web3.eth.chain_id,
+                'value': 0
+            })
             
             # Log transaction data
             logger.info(f"Transaction data: {tx_data}")
