@@ -63,5 +63,13 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
+
+# Set default values for Oracle configuration
+ENV WEB3_PROVIDER=""
+ENV ORACLE_ADDRESS=""
+ENV PRIVATE_KEY=""
+ENV POLL_INTERVAL=10
+ENV MAX_RETRIES=3
+
 # Run the application.
 CMD ["uvicorn", "app:app", "--host=0.0.0.0", "--port=3000"]

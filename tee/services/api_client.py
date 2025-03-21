@@ -1,0 +1,131 @@
+"""
+API client service for the TEE Oracle.
+
+This module provides a service for making external API requests.
+"""
+import asyncio
+import json
+import logging
+import sys
+from pathlib import Path
+from typing import Dict, Any, Optional
+
+# Add the parent directory to the path so imports work correctly
+parent_dir = str(Path(__file__).parent.parent.absolute())
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
+import aiohttp
+
+from config.settings import settings
+from models.request import RequestData, HttpMethod
+from models.response import ApiResponse
+from utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+class ApiClient:
+    """Client for making external API requests"""
+    
+    def __init__(self, timeout: Optional[int] = None):
+        """Initialize the API client"""
+        self.timeout = timeout or settings.api_timeout
+    
+    async def make_request(self, request: RequestData) -> ApiResponse:
+        """Make an API request"""
+        logger.info(f"Making {request.method.name} request to {request.url}")
+        
+        # Prepare headers
+        headers = request.get_headers_dict()
+        
+        try:
+            # Create timeout
+            timeout = aiohttp.ClientTimeout(total=self.timeout)
+            
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                # Get the appropriate request method
+                method_func = getattr(session, request.method.name.lower())
+                
+                # For GET and DELETE requests
+                if request.method in [HttpMethod.GET, HttpMethod.DELETE]:
+                    async with method_func(request.url, headers=headers) as response:
+                        return await self._process_response(response)
+                
+                # For POST, PUT, PATCH requests
+                else:
+                    # Prepare the request body
+                    body_data = request.body
+                    content_type = headers.get('Content-Type', '')
+                    
+                    # If JSON content type and body is string, try to parse as JSON
+                    if 'application/json' in content_type and body_data:
+                        try:
+                            body_data = json.loads(body_data)
+                        except json.JSONDecodeError:
+                            logger.warning(f"Failed to parse body as JSON despite Content-Type")
+                    
+                    # Make the request
+                    kwargs = {
+                        'headers': headers,
+                    }
+                    
+                    # Add the appropriate body parameter
+                    if isinstance(body_data, dict):
+                        kwargs['json'] = body_data
+                    elif body_data:
+                        kwargs['data'] = body_data
+                    
+                    # Make the request
+                    async with method_func(request.url, **kwargs) as response:
+                        return await self._process_response(response)
+        
+        except asyncio.TimeoutError:
+            logger.error(f"Request to {request.url} timed out after {self.timeout} seconds")
+            return ApiResponse(
+                success=False,
+                error=f"Request timed out after {self.timeout} seconds"
+            )
+        
+        except Exception as e:
+            logger.error(f"Error making request to {request.url}: {str(e)}", exc_info=True)
+            return ApiResponse(
+                success=False,
+                error=f"Request failed: {str(e)}"
+            )
+    
+    async def _process_response(self, response: aiohttp.ClientResponse) -> ApiResponse:
+        """Process an HTTP response"""
+        try:
+            # Try to parse as JSON first
+            try:
+                data = await response.json()
+            except:
+                # Fall back to text
+                data = await response.text()
+                
+            logger.info(f"Response data: {data}")
+            
+            # Check if the response is successful
+            if response.status < 400:
+                logger.info(f"Request succeeded with status {response.status}")
+                return ApiResponse(
+                    success=True,
+                    status=response.status,
+                    data=data
+                )
+            else:
+                logger.error(f"Request failed with status {response.status}")
+                return ApiResponse(
+                    success=False,
+                    status=response.status,
+                    error=f"Request failed with status {response.status}",
+                    data=data
+                )
+        
+        except Exception as e:
+            logger.error(f"Error processing response: {str(e)}", exc_info=True)
+            return ApiResponse(
+                success=False,
+                error=f"Error processing response: {str(e)}"
+            ) 

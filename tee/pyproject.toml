@@ -1,11 +1,19 @@
 [project]
-name = "tapi"
+name = "tee-oracle"
 version = "0.1.0"
-description = "TEE Oracle based on UV"
+description = "TEE Oracle for connecting smart contracts to REST APIs"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "dstack-sdk==0.1.2",
-    "asyncio>=3.4.3",
-    "fastapi==0.111.0"
+    "dstack-sdk>=0.1.2",
+    "web3>=6.11.0",
+    "pydantic>=2.0.0",
+    "aiohttp>=3.9.0",
+    "fastapi>=0.111.0",
+    "uvicorn>=0.27.0",
+    "jsonpath-ng>=1.5.0",
+    "eth-abi>=5.0.0"
 ]
+
+[project.scripts]
+tee-oracle = "main:main"
