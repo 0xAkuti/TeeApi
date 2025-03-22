@@ -12,7 +12,7 @@ from ecies.utils import generate_eth_key
 from web3 import Web3
 from dstack_sdk import AsyncTappdClient
 
-from utils.logging import get_logger
+from utils.loggingx import get_logger
 
 logger = get_logger(__name__)
 
@@ -41,6 +41,9 @@ class CryptoManager:
             
             # Set the private key as hex string
             self._private_key = '0x' + private_key_bytes.hex()
+            
+            # overwrite for testing, TODO remove later
+            self._private_key = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97" # anivl key
             
             # Derive address from private key
             account = Web3().eth.account.from_key(self._private_key)
