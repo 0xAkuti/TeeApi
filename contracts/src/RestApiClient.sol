@@ -43,26 +43,32 @@ abstract contract RestApiClient is IRestApiConsumer {
      * @dev Make a request to a REST API
      * @param method The HTTP method to use
      * @param url The URL to request
+     * @param urlEncrypted Whether the URL is encrypted
      * @param headers The headers to include in the request
      * @param queryParams The query parameters to append to the URL
      * @param body The request body for POST/PUT/PATCH requests
+     * @param bodyEncrypted Whether the body is encrypted
      * @param responseFields The fields to extract from the response
      * @return requestId The unique identifier for the request
      */
     function makeRequest(
         IOracle.HttpMethod method,
         string memory url,
+        bool urlEncrypted,
         IOracle.KeyValue[] memory headers,
         IOracle.KeyValue[] memory queryParams,
         string memory body,
+        bool bodyEncrypted,
         IOracle.ResponseField[] memory responseFields
     ) internal returns (bytes32) {
         IOracle.Request memory request = IOracle.Request({
             method: method,
             url: url,
+            urlEncrypted: urlEncrypted,
             headers: headers,
             queryParams: queryParams,
             body: body,
+            bodyEncrypted: bodyEncrypted,
             responseFields: responseFields
         });
         return oracle.requestRestApi{value: msg.value}(request);
@@ -79,7 +85,14 @@ abstract contract RestApiClient is IRestApiConsumer {
         returns (bytes32)
     {
         return makeRequest(
-            IOracle.HttpMethod.GET, url, new IOracle.KeyValue[](0), new IOracle.KeyValue[](0), "", responseFields
+            IOracle.HttpMethod.GET,
+            url,
+            false,
+            new IOracle.KeyValue[](0),
+            new IOracle.KeyValue[](0),
+            "",
+            false,
+            responseFields
         );
     }
 
