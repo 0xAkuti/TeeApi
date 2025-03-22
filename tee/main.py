@@ -25,6 +25,7 @@ logger = logging.getLogger("tee-oracle")
 from services.blockchain import BlockchainService
 from services.api_client import ApiClient
 from services.response_processor import ResponseProcessor
+from utils.crypto import crypto_manager
 
 
 async def oracle_loop(blockchain_service, api_client, processor, poll_interval=10):
@@ -93,6 +94,15 @@ async def main():
         logger.error("Oracle contract address is required. Set it with --oracle-address or ORACLE_ADDRESS env var.")
         return 1
     
+    try:
+        # Initialize crypto manager with the DStack key
+        logger.info("Initializing crypto manager with DStack key")
+        await crypto_manager.initialize()
+        logger.info("Crypto manager initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize crypto manager: {str(e)}")
+        return 1
+    
     # Create services using the existing components
     blockchain_service = BlockchainService(args.provider, args.oracle_address)
     api_client = ApiClient()
@@ -112,4 +122,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main()) 
+    asyncio.run(main())

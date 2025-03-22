@@ -25,6 +25,7 @@ from config.settings import settings
 from models.request import RequestEvent, RequestData
 from utils.abi import get_contract_abi
 from utils.logging import get_logger
+from utils.crypto import crypto_manager
 
 logger = get_logger(__name__)
 
@@ -70,6 +71,18 @@ class BlockchainService:
         self.last_processed_block = await self.web3.eth.block_number
         logger.info(f"Starting from block {self.last_processed_block}")
         
+        # Get the Oracle's public key
+        try:
+            public_key = await self.oracle_contract.functions.getPublicKey().call()
+            if public_key:
+                # Set the public key in the crypto manager
+                crypto_manager.set_public_key(public_key)
+                logger.info("Retrieved and set Oracle's public key from contract")
+            else:
+                logger.warning("Oracle contract does not have a public key set yet")
+        except Exception as e:
+            logger.warning(f"Could not retrieve Oracle public key: {str(e)}")
+        
         self.initialized = True
         logger.info("Blockchain service initialized")
     
@@ -104,10 +117,12 @@ class BlockchainService:
         # Create request data
         request_data = RequestData(
             url=args.request.url,  # url is at index 1
+            urlEncrypted=args.request.urlEncrypted,
             method=args.request.method,  # method is at index 0
             headers=args.request.headers,  # headers is at index 2
             queryParams=args.request.queryParams,  # queryParams is at index 3
             body=args.request.body,  # body is at index 4
+            bodyEncrypted=args.request.bodyEncrypted,
             responseFields=args.request.responseFields  # responseFields is at index 5
         )
         
@@ -155,7 +170,7 @@ class BlockchainService:
         logger.info(f"Submitting response for request {request_id}")
         
         try:
-            # Sign transaction within the TEE
+            # Get the TEE key for signing from DStack
             derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
             private_key_bytes = derive_key.toBytes(32)  # Get limited private key bytes
             
@@ -164,9 +179,9 @@ class BlockchainService:
             
             # Get account from private key
             account = self.web3.eth.account.from_key(private_key_bytes)
-            logger.info(f"Derived address: {account.address}")
+            logger.info(f"Using derived address for signing: {account.address}")
             
-            # Use dstack to sign and send the transaction
+            # Convert request ID to bytes
             request_id_bytes = Web3.to_bytes(hexstr=request_id)
             
             # Create transaction data

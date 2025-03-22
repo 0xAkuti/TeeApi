@@ -12,7 +12,8 @@ dependencies = [
     "fastapi>=0.111.0",
     "uvicorn>=0.27.0",
     "jsonpath-ng>=1.5.0",
-    "eth-abi>=5.0.0"
+    "eth-abi>=5.0.0",
+    "eciespy>=0.4.4"
 ]
 
 [project.scripts]

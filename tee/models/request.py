@@ -22,6 +22,7 @@ class KeyValue(BaseModel):
     """Key-value pair for headers or query parameters"""
     key: str
     value: str
+    encrypted: bool = False
 
 
 class ResponseField(BaseModel):
@@ -34,9 +35,11 @@ class RequestData(BaseModel):
     """Model for a REST API request matching Solidity contract struct"""
     method: HttpMethod
     url: str
+    urlEncrypted: bool = False
     headers: List[KeyValue] = Field(default_factory=list)
     queryParams: List[KeyValue] = Field(default_factory=list)
     body: str = ""
+    bodyEncrypted: bool = False
     responseFields: List[ResponseField]
     
     def get_headers_dict(self) -> Dict[str, str]:

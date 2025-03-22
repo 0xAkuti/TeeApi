@@ -18,9 +18,10 @@ if parent_dir not in sys.path:
 import aiohttp
 
 from config.settings import settings
-from models.request import RequestData, HttpMethod
+from models.request import RequestData, HttpMethod, KeyValue
 from models.response import ApiResponse
 from utils.logging import get_logger
+from utils.crypto import crypto_manager
 
 logger = get_logger(__name__)
 
@@ -34,6 +35,9 @@ class ApiClient:
     
     async def make_request(self, request: RequestData) -> ApiResponse:
         """Make an API request"""
+        # Process the request to decrypt any encrypted fields
+        request = await self._process_encrypted_fields(request)
+        
         # Get the full URL with query parameters
         url = request.get_full_url()
         logger.info(f"Making {request.method.name} request to {url}")
@@ -95,6 +99,64 @@ class ApiClient:
                 success=False,
                 error=f"Request failed: {str(e)}"
             )
+    
+    async def _process_encrypted_fields(self, request: RequestData) -> RequestData:
+        """Process and decrypt encrypted fields in the request"""
+        # Create a new request object to avoid modifying the original
+        processed_request = RequestData(
+            method=request.method,
+            url=request.url,
+            urlEncrypted=request.urlEncrypted,
+            headers=[],  # Will be filled in
+            queryParams=[],  # Will be filled in
+            body=request.body,
+            bodyEncrypted=request.bodyEncrypted,
+            responseFields=request.responseFields
+        )
+        
+        # Decrypt URL if needed
+        if request.urlEncrypted:
+            processed_request.url = crypto_manager.decrypt_from_contract(request.url)
+            processed_request.urlEncrypted = False
+            logger.info(f"Decrypted URL: {processed_request.url}")
+        
+        # Decrypt body if needed
+        if request.bodyEncrypted:
+            processed_request.body = crypto_manager.decrypt_from_contract(request.body)
+            processed_request.bodyEncrypted = False
+            logger.info("Request body was decrypted")
+        
+        # Process headers
+        for header in request.headers:
+            if header.encrypted:
+                # Decrypt the header value
+                decrypted_value = crypto_manager.decrypt_from_contract(header.value)
+                processed_request.headers.append(KeyValue(
+                    key=header.key,
+                    value=decrypted_value,
+                    encrypted=False
+                ))
+                logger.info(f"Decrypted header: {header.key}")
+            else:
+                # Keep as-is
+                processed_request.headers.append(header)
+        
+        # Process query parameters
+        for param in request.queryParams:
+            if param.encrypted:
+                # Decrypt the parameter value
+                decrypted_value = crypto_manager.decrypt_from_contract(param.value)
+                processed_request.queryParams.append(KeyValue(
+                    key=param.key,
+                    value=decrypted_value,
+                    encrypted=False
+                ))
+                logger.info(f"Decrypted query parameter: {param.key}")
+            else:
+                # Keep as-is
+                processed_request.queryParams.append(param)
+        
+        return processed_request
     
     async def _process_response(self, response: aiohttp.ClientResponse) -> ApiResponse:
         """Process an HTTP response"""
