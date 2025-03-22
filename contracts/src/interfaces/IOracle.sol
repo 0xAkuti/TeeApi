@@ -33,27 +33,35 @@ interface IOracle {
 
     /**
      * @dev Struct representing a key-value pair for headers or query parameters
+     * @param key The key name
+     * @param value The value
+     * @param encrypted Whether the value is encrypted
      */
     struct KeyValue {
         string key;
         string value;
+        bool encrypted;
     }
 
     /**
      * @dev Struct representing a REST API request
      * @param method HTTP method for the request
      * @param url Base URL for the API request
+     * @param urlEncrypted Whether the URL is encrypted
      * @param headers HTTP headers to include in the request
      * @param queryParams Query parameters to append to the URL
      * @param body Request body for POST/PUT/PATCH requests
+     * @param bodyEncrypted Whether the body is encrypted
      * @param responseFields Fields to extract from the JSON response
      */
     struct Request {
         HttpMethod method;
         string url;
+        bool urlEncrypted;
         KeyValue[] headers;
         KeyValue[] queryParams;
         string body;
+        bool bodyEncrypted;
         ResponseField[] responseFields;
     }
 
@@ -78,6 +86,18 @@ interface IOracle {
      * @return requestId Unique identifier for the request
      */
     function requestRestApi(Request calldata request) external payable returns (bytes32 requestId);
+
+    /**
+     * @dev Get the oracle's Ethereum public key as a hex string
+     * @return publicKey The oracle's Ethereum public key
+     */
+    function getPublicKey() external view returns (string memory publicKey);
+
+    /**
+     * @dev Get the oracle's Ethereum address for the public key
+     * @return keyAddress The oracle's Ethereum address
+     */
+    function getPublicKeyAddress() external view returns (address keyAddress);
 
     /**
      * @dev Fulfill a REST API request with the response data, only callable by the TEE

@@ -7,6 +7,8 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {IOracle} from "./interfaces/IOracle.sol";
 import {IRestApiConsumer} from "./interfaces/IRestApiConsumer.sol";
 
+import "forge-std/console.sol";
+
 /**
  * @title Oracle
  * @dev Contract that handles REST API requests and responses
@@ -25,6 +27,12 @@ contract Oracle is IOracle, OwnableRoles {
     // Simple mapping to track completed requests - uint256 for gas refunds when cleared
     mapping(bytes32 => uint256) internal requestStatus;
 
+    // Oracle's Ethereum public key for ECIES encryption (hex string with 0x prefix)
+    string internal teePublicKey;
+
+    // Cached Ethereum address derived from the public key for easier access
+    address internal teeAddress;
+
     /**
      * @dev Constructor
      * @param _requestFee Initial fee for making a request
@@ -32,6 +40,49 @@ contract Oracle is IOracle, OwnableRoles {
     constructor(uint256 _requestFee) {
         _initializeOwner(msg.sender);
         requestFee = _requestFee;
+    }
+
+    /**
+     * @dev Set the TEE public encryption key, only callable by the owner
+     * @param _publicKey The Ethereum public key (hex string with 0x prefix)
+     */
+    function setPublicKey(string calldata _publicKey) external onlyOwner {
+        teePublicKey = _publicKey;
+
+        // Derive and store the Ethereum address using custom assembly
+        // This calculation is done off-chain, but we store it for convenience
+        // In a production contract, we would properly derive it here if needed
+        if (bytes(_publicKey).length >= 4) {
+            // Here we would parse the public key and derive the address
+            // For now, we'll assume it's passed as a parameter to a separate function
+            // and we'll implement the proper derivation in the future
+        }
+    }
+
+    /**
+     * @dev Set the TEE Ethereum address that corresponds to the public key
+     * This would normally be derived from the public key, but is set separately
+     * for simplicity and gas efficiency
+     * @param _address The Ethereum address
+     */
+    function setPublicKeyAddress(address _address) external onlyOwner {
+        teeAddress = _address;
+    }
+
+    /**
+     * @dev Get the oracle's Ethereum address for the public key
+     * @return keyAddress The oracle's Ethereum address
+     */
+    function getPublicKeyAddress() external view returns (address) {
+        return teeAddress;
+    }
+
+    /**
+     * @dev Get the oracle's public encryption key as a hex string
+     * @return publicKey The oracle's public encryption key
+     */
+    function getPublicKey() external view returns (string memory) {
+        return teePublicKey;
     }
 
     /**
@@ -74,7 +125,7 @@ contract Oracle is IOracle, OwnableRoles {
             revert RequestNotActive();
         }
         address requester = _getRequester(requestId);
-
+        console.log("Requester address: %s", requester);
         requestStatus[requestId] = REQUEST_INACTIVE; // get gas refund
 
         bool callbackSuccess;

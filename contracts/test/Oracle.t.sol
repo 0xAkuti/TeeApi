@@ -43,8 +43,10 @@ contract OracleTest is Test {
             user,
             IOracle.Request({
                 url: "https://jsonplaceholder.typicode.com/todos",
+                urlEncrypted: false,
                 method: IOracle.HttpMethod.GET,
                 body: "",
+                bodyEncrypted: false,
                 headers: new IOracle.KeyValue[](0),
                 queryParams: new IOracle.KeyValue[](0),
                 responseFields: new IOracle.ResponseField[](0)
@@ -65,8 +67,10 @@ contract OracleTest is Test {
             user,
             IOracle.Request({
                 url: "",
+                urlEncrypted: false,
                 method: IOracle.HttpMethod.GET,
                 body: "",
+                bodyEncrypted: false,
                 headers: new IOracle.KeyValue[](0),
                 queryParams: new IOracle.KeyValue[](0),
                 responseFields: new IOracle.ResponseField[](0)
