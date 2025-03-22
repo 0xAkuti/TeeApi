@@ -19,7 +19,7 @@ from web3 import Web3
 
 from models.request import RequestEvent
 from models.response import ApiResponse, ProcessedResponse, ExtractedData, ExtractionResult
-from utils.logging import get_logger
+from utils.loggingx import get_logger
 
 logger = get_logger(__name__)
 

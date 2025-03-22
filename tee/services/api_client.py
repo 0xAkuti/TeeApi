@@ -20,7 +20,7 @@ import aiohttp
 from config.settings import settings
 from models.request import RequestData, HttpMethod, KeyValue
 from models.response import ApiResponse
-from utils.logging import get_logger
+from utils.loggingx import get_logger
 from utils.crypto import crypto_manager
 
 logger = get_logger(__name__)

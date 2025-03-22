@@ -24,7 +24,7 @@ from web3.types import EventData, TxReceipt
 from config.settings import settings
 from models.request import RequestEvent, RequestData
 from utils.abi import get_contract_abi
-from utils.logging import get_logger
+from utils.loggingx import get_logger
 from utils.crypto import crypto_manager
 
 logger = get_logger(__name__)
