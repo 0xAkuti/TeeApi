@@ -4,3 +4,6 @@
 [submodule "contracts/lib/solady"]
 	path = contracts/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "website"]
+	path = website
+	url = https://github.com/zanastas/teeapi-site
