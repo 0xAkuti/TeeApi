@@ -24,11 +24,19 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         string date;
     }
 
+    struct FlightId {
+        string flightNumber;
+        string date;
+    }
+
     // Store flight information by flight number and date
-    mapping(string => mapping(string => FlightInfo)) private flightData;
+    mapping(FlightId => FlightInfo) private flightData;
 
     // claimer address by requestId
     mapping(bytes32 => address) private claimers;
+
+    // flightId by requestId
+    mapping(bytes32 => FlightId) private flightIds;
 
     // Events
     event FlightDelayVerified(string flightNumber, string date, bool delayed, uint256 delayMinutes);
@@ -47,7 +55,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
      * @param flightNumber IATA flight number (e.g., UA1606)
      * @return requestId The unique identifier for the request
      */
-    function checkFlightDelay(string memory flightNumber) external payable returns (bytes32) {
+    function initiateClaim(string memory flightNumber) external payable returns (bytes32) {
         // Create query parameters with encrypted API key
         IOracle.KeyValue[] memory queryParams = new IOracle.KeyValue[](2);
         queryParams[0] = IOracle.KeyValue({
@@ -58,26 +66,20 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         queryParams[1] = IOracle.KeyValue({key: "flight_iata", value: flightNumber, encrypted: false});
 
         // Define conditions for verification
-        IOracle.Condition memory flightLandedCondition =
-            IOracle.Condition({operator: "eq", value: "landed", encrypted: false});
-
-        IOracle.Condition memory delayCondition = IOracle.Condition({operator: "gt", value: "0", encrypted: false});
-
+        IOracle.Condition memory flightLanded = IOracle.Condition({operator: "eq", value: "landed", encrypted: false});
+        IOracle.Condition memory isDelayed = IOracle.Condition({operator: "gt", value: "0", encrypted: false});
         IOracle.Condition memory noCondition = IOracle.Condition({operator: "", value: "", encrypted: false});
 
         // Create response fields with conditions to verify
         IOracle.ResponseField[] memory responseFields = new IOracle.ResponseField[](5);
 
         // Verify if flight has landed
-        responseFields[0] = IOracle.ResponseField({
-            path: "$.data[0].flight_status",
-            responseType: "string",
-            condition: flightLandedCondition
-        });
+        responseFields[0] =
+            IOracle.ResponseField({path: "$.data[0].flight_status", responseType: "string", condition: flightLanded});
 
         // Verify if arrival delay is greater than 0
         responseFields[1] =
-            IOracle.ResponseField({path: "$.data[0].arrival.delay", responseType: "uint256", condition: delayCondition});
+            IOracle.ResponseField({path: "$.data[0].arrival.delay", responseType: "uint256", condition: isDelayed});
 
         // Extract the actual delay minutes
         responseFields[2] =
@@ -104,7 +106,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         });
 
         claimers[requestId] = msg.sender;
-
+        flightIds[requestId] = FlightId({flightNumber: flightNumber, date: date});
         return requestId;
     }
 
@@ -133,6 +135,16 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
     }
 
     /**
+     * @dev Get flight information by requestId
+     * @param requestId Unique identifier for the request
+     * @return Information about the flight
+     */
+    function getFlightInfoById(bytes32 requestId) external view returns (FlightInfo memory) {
+        FlightId memory flightId = flightIds[requestId];
+        return flightData[flightId.flightNumber][flightId.date];
+    }
+
+    /**
      * @dev Implementation of _handleResponse from RestApiClient
      * @param requestId Unique identifier for the request
      * @param success Whether the API request was successful
@@ -145,7 +157,11 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
             abi.decode(data, (bool, bool, uint256, string, string));
 
         // Update flight data
-        FlightInfo storage flight = flightData[flightNumber][date];
+        FlightInfo memory flight = flightData[flightNumber][date];
+        // Return early if flight already exists
+        if (flight.claimTimestamp != 0) {
+            return;
+        }
         flight.delayed = isLanded && isDelayed;
         flight.delayMinutes = delayMinutes;
 
@@ -157,5 +173,6 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
             SafeTransferLib.safeTransferETH(claimer, INSURANCE_PAYOUT);
             emit ClaimPaid(claimer, flightNumber, date, INSURANCE_PAYOUT);
         }
+        flightData[flightNumber][date] = flight;
     }
 }
