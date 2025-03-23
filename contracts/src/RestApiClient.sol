@@ -11,7 +11,7 @@ import {IRestApiConsumer} from "./interfaces/IRestApiConsumer.sol";
  */
 abstract contract RestApiClient is IRestApiConsumer {
     /// @dev The caller is not authorized to call the function.
-    error Unauthorized();
+    error UnauthorizedNotOracle();
 
     // The Oracle contract address
     IOracle public immutable oracle;
@@ -27,7 +27,7 @@ abstract contract RestApiClient is IRestApiConsumer {
     event ApiResponseReceived(bytes32 indexed requestId, bool success);
 
     modifier onlyOracle() {
-        if (msg.sender != address(oracle)) revert Unauthorized();
+        if (msg.sender != address(oracle)) revert UnauthorizedNotOracle();
         _;
     }
 
