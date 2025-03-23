@@ -8,7 +8,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 # Add the parent directory to the path so imports work correctly
 parent_dir = str(Path(__file__).parent.parent.absolute())
@@ -18,7 +18,7 @@ if parent_dir not in sys.path:
 import aiohttp
 
 from config.settings import settings
-from models.request import RequestData, HttpMethod, KeyValue
+from models.request import RequestData, HttpMethod, KeyValue, ResponseField, Condition
 from models.response import ApiResponse
 from utils.loggingx import get_logger
 from utils.crypto import crypto_manager
@@ -111,7 +111,7 @@ class ApiClient:
             queryParams=[],  # Will be filled in
             body=request.body,
             bodyEncrypted=request.bodyEncrypted,
-            responseFields=request.responseFields
+            responseFields=[]  # Will be filled in with processed conditions
         )
         
         # Decrypt URL if needed
@@ -155,6 +155,34 @@ class ApiClient:
             else:
                 # Keep as-is
                 processed_request.queryParams.append(param)
+        
+        # Process response fields with conditions
+        for field in request.responseFields:
+            processed_field = ResponseField(
+                path=field.path,
+                responseType=field.responseType
+            )
+            
+            # Process condition if present
+            if field.condition:
+                condition_value = field.condition.value
+                
+                # Decrypt the condition value if encrypted
+                if field.condition.encrypted:
+                    condition_value = crypto_manager.decrypt_from_contract(condition_value)
+                    logger.info(f"Decrypted condition value for field: {field.path}")
+                
+                # Create new condition with decrypted value
+                processed_field.condition = Condition(
+                    operator=field.condition.operator,
+                    value=condition_value,
+                    encrypted=False  # Mark as already decrypted
+                )
+            else:
+                # No condition or already decrypted
+                processed_field.condition = field.condition
+                
+            processed_request.responseFields.append(processed_field)
         
         return processed_request
     

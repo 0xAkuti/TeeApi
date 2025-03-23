@@ -22,13 +22,29 @@ interface IOracle {
     }
 
     /**
+     * @dev Struct representing a condition for response verification
+     * @param operator Comparison operator (e.g., "gt", "lt", "eq", "contains")
+     * @param value Value to compare against
+     * @param encrypted Whether the comparison value is encrypted
+     */
+    struct Condition {
+        string operator;
+        string value;
+        bool encrypted;
+    }
+
+    /**
      * @dev Struct representing a field to extract from JSON response
      * @param path JSONPath expression to extract the value
      * @param responseType Type of the response (string, uint, int, bool, address, bytes)
+     * @param condition Optional condition to verify against the value
+     *        If condition is provided, the response will be a boolean indicating
+     *        whether the value meets the condition, instead of the actual value
      */
     struct ResponseField {
         string path;
         string responseType;
+        Condition condition;
     }
 
     /**

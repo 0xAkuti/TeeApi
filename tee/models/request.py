@@ -25,10 +25,22 @@ class KeyValue(BaseModel):
     encrypted: bool = False
 
 
+class Condition(BaseModel):
+    """Condition for response verification matching Solidity struct"""
+    operator: str  # "gt", "lt", "eq", "contains", etc.
+    value: str
+    encrypted: bool = False
+
+
 class ResponseField(BaseModel):
     """Field to extract from JSON response"""
     path: str
     responseType: str
+    condition: Optional[Condition] = None
+    
+    def has_condition(self) -> bool:
+        """Check if this field has a condition that should be verified"""
+        return self.condition is not None and self.condition.operator != ""
 
 
 class RequestData(BaseModel):
