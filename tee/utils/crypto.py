@@ -11,6 +11,7 @@ from ecies import encrypt as ecies_encrypt, decrypt as ecies_decrypt
 from ecies.utils import generate_eth_key
 from web3 import Web3
 from dstack_sdk import AsyncTappdClient
+from eth_keys import keys
 
 from utils.loggingx import get_logger
 
@@ -53,27 +54,14 @@ class CryptoManager:
         account = Web3().eth.account.from_key(self._private_key)
         self._address = account.address
         
+        if crypto_manager._private_key:
+            private_key_obj = keys.PrivateKey(bytes.fromhex(self._private_key[2:]))
+            public_key_obj = private_key_obj.public_key
+            self._public_key = public_key_obj.to_hex()
+        
         self._initialized = True
         logger.info(f"Cryptography manager initialized for address {self._address}")
-    
-    def set_public_key(self, public_key: str) -> None:
-        """
-        Set the public key manually
-        
-        Args:
-            public_key: The public key as hex string (with or without 0x prefix)
-        """
-        try:
-            # Ensure the public key has 0x prefix
-            if not public_key.startswith('0x'):
-                public_key = '0x' + public_key
-                
-            self._public_key = public_key
-            self._initialized = True
-            logger.info("Public key set manually")
-        except Exception as e:
-            logger.error(f"Failed to set public key: {str(e)}", exc_info=True)
-            raise
+
     
     @property
     def public_key(self) -> str:
