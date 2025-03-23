@@ -33,14 +33,15 @@ class ApiClient:
         """Initialize the API client"""
         self.timeout = timeout or settings.api_timeout
     
-    async def make_request(self, request: RequestData) -> ApiResponse:
+    async def make_request(self, orig_request: RequestData) -> ApiResponse:
         """Make an API request"""
         # Process the request to decrypt any encrypted fields
-        request = await self._process_encrypted_fields(request)
+        request = await self._process_encrypted_fields(orig_request)
         
         # Get the full URL with query parameters
         url = request.get_full_url()
-        logger.info(f"Making {request.method.name} request to {url}")
+        url_for_logging = "<REDACTED>" if orig_request.urlEncrypted else url
+        logger.info(f"Making {request.method.name} request to {url_for_logging} ...")
         
         # Prepare headers
         headers = request.get_headers_dict()
@@ -87,14 +88,14 @@ class ApiClient:
                         return await self._process_response(response)
         
         except asyncio.TimeoutError:
-            logger.error(f"Request to {url} timed out after {self.timeout} seconds")
+            logger.error(f"Request to {url_for_logging} timed out after {self.timeout} seconds")
             return ApiResponse(
                 success=False,
                 error=f"Request timed out after {self.timeout} seconds"
             )
         
         except Exception as e:
-            logger.error(f"Error making request to {url}: {str(e)}", exc_info=True)
+            logger.error(f"Error making request to {url_for_logging}: {str(e)}", exc_info=True)
             return ApiResponse(
                 success=False,
                 error=f"Request failed: {str(e)}"
@@ -118,7 +119,7 @@ class ApiClient:
         if request.urlEncrypted:
             processed_request.url = crypto_manager.decrypt_from_contract(request.url)
             processed_request.urlEncrypted = False
-            logger.info(f"Decrypted URL: {processed_request.url}")
+            logger.info(f"URL was decrypted")
         
         # Decrypt body if needed
         if request.bodyEncrypted:
@@ -196,7 +197,7 @@ class ApiClient:
                 # Fall back to text
                 data = await response.text()
                 
-            logger.info(f"Response data: {data}")
+            logger.debug(f"Response data: {data}")
             
             # Check if the response is successful
             if response.status < 400:

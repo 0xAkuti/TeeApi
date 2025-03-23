@@ -80,7 +80,7 @@ class BlockchainService:
             else:
                 logger.info("Public key matches between contract and crypto manager")
         except Exception as e:
-            logger.warning(f"Could not retrieve Oracle public key: {str(e)}")
+            logger.critical(f"Could not retrieve Oracle public key: {str(e)}")
         
         self.initialized = True
         logger.info("Blockchain service initialized")
@@ -99,19 +99,21 @@ class BlockchainService:
             from_block=from_block,
             to_block=to_block
         )
-        logger.info(f"Found {len(events)} events")
+        if len(events) > 0:
+            logger.info(f"Found {len(events)} events")
+        else:
+            logger.info("No events found")
         return events
     
     def parse_request_event(self, event: EventData) -> RequestEvent:
         """Parse an event into a RequestEvent model"""
         args = event.args
         
-        logger.info(f"Parsing request event: {args}")
-        
         # Convert requestId from bytes to hex string
         request_id_hex = Web3.to_hex(args.requestId)
         
         logger.info(f"Request ID: {request_id_hex}")
+        logger.info(f"Parsing request event: {args}")
         
         # Create request data
         request_data = RequestData(
@@ -179,7 +181,7 @@ class BlockchainService:
 
             # Get account from private key
             account = self.web3.eth.account.from_key(private_key_bytes)
-            logger.info(f"Using derived address for signing: {account.address}")
+            logger.debug(f"Using derived address for signing: {account.address}")
             
             # Convert request ID to bytes
             request_id_bytes = Web3.to_bytes(hexstr=request_id)
@@ -205,7 +207,7 @@ class BlockchainService:
             })
             
             # Log transaction data
-            logger.info(f"Transaction data: {tx_data}")
+            logger.debug(f"Transaction data: {tx_data}")
             
             # Sign the transaction
             signed_tx = self.web3.eth.account.sign_transaction(tx_data, private_key_bytes)

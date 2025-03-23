@@ -174,7 +174,8 @@ class ResponseProcessor:
                 logger.warning(f"Unknown operator: {operator}")
                 result = False
                 
-            logger.info(f"Condition verification: {converted_value} {operator} {converted_condition} = {result}")
+            logger.debug(f"Condition verification: {converted_value} {operator} {converted_condition}")
+            logger.info(f"Condition verification result: {result}")            
             
             # Return the result as a boolean
             return ExtractionResult(
