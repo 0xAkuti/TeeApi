@@ -9,14 +9,20 @@ import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 /**
  * @title FlightDelayInsurance
  * @dev A contract that provides insurance payouts for flight delays
+ * @notice This contract allows users to make claims for flight delays and receive automatic
+ * payouts if their flight was delayed. It uses the TeeAPI Oracle to verify flight data.
  */
 contract FlightDelayInsurance is RestApiClient, Ownable {
     // Insurance payout amount in wei
     uint256 public constant INSURANCE_PAYOUT = 0.001 ether;
 
-    // Flight data structure
+    /**
+     * @dev Flight data structure
+     * @notice Stores information about a flight's delay status and claim details
+     */
     struct FlightInfo {
         bool claimed;
+        bool landed;
         bool delayed;
         uint256 claimTimestamp;
         uint256 delayMinutes;
@@ -24,6 +30,10 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         string date;
     }
 
+    /**
+     * @dev Flight identifier structure
+     * @notice Used to uniquely identify a flight by its number and date
+     */
     struct FlightId {
         string flightNumber;
         string date;
@@ -35,16 +45,35 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
     // claimer address by requestId
     mapping(bytes32 => address) private claimers;
 
+    // make it easy to see the last request by the claimer
+    bytes32 public lastRequestId;
+
     // flightId by requestId
     mapping(bytes32 => FlightId) private flightIds;
 
     // Events
+    /**
+     * @notice Emitted when a flight's delay status has been verified by the Oracle
+     * @param flightNumber The IATA flight number
+     * @param date The flight date (YYYY-MM-DD)
+     * @param delayed Whether the flight was delayed
+     * @param delayMinutes The number of minutes the flight was delayed
+     */
     event FlightDelayVerified(string flightNumber, string date, bool delayed, uint256 delayMinutes);
+
+    /**
+     * @notice Emitted when an insurance claim is paid out
+     * @param recipient The address that received the payout
+     * @param flightNumber The IATA flight number for the delayed flight
+     * @param date The flight date (YYYY-MM-DD)
+     * @param amount The amount paid out in wei
+     */
     event ClaimPaid(address recipient, string flightNumber, string date, uint256 amount);
 
     /**
      * @dev Constructor
      * @param _oracle Address of the Oracle contract
+     * @notice Initializes the contract with the Oracle address and sets the owner
      */
     constructor(address _oracle) RestApiClient(_oracle) {
         _initializeOwner(msg.sender);
@@ -54,13 +83,16 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
      * @dev Check if a flight is delayed
      * @param flightNumber IATA flight number (e.g., UA1606)
      * @return requestId The unique identifier for the request
+     * @notice Initiates a claim for flight delay insurance by checking the flight status
+     * using the TeeAPI Oracle. A small fee may be required to cover the Oracle costs.
+     * Currently the fee is 100000000000000 (0.0001 ETH).
      */
     function initiateClaim(string memory flightNumber) external payable returns (bytes32) {
         // Create query parameters with encrypted API key
         IOracle.KeyValue[] memory queryParams = new IOracle.KeyValue[](2);
         queryParams[0] = IOracle.KeyValue({
             key: "access_key",
-            value: "BKYsjhVlGzVth8axoDpWJNxstMuU+W8rgLdye1MsAiWIfLbUg5xVfST34kp/b7DvI1SLmECJKuBplDxdDxF1NrlT/f6w/XX7Unp0i3E2Aygi85W8nZbGjSk07BVJO4xlxuopzJDbbZceJrLhih3royD/9xIWyLy34n32SvbD9mAl",
+            value: "BJst9aKc0VEuRDm3bFqnePTvE+JVmo/A8p2WZqn2QLk4eYgR7ECFRIsz5kuvCjf9v+yaNZ5OFtfYs1qzckOJCJK4s/lJkmgOlP/Ys0pkiZ+WQgf6gz/VkjQv1Ul/XnJ9FHftgDQdgg2ii/jQ0lKhcnt2i7qADd95H7qSOsGkdUWZ",
             encrypted: true
         });
         queryParams[1] = IOracle.KeyValue({key: "flight_iata", value: flightNumber, encrypted: false});
@@ -107,11 +139,13 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
 
         claimers[requestId] = msg.sender;
         flightIds[requestId] = FlightId({flightNumber: flightNumber, date: ""});
+        lastRequestId = requestId;
         return requestId;
     }
 
     /**
      * @dev Fund the contract to pay for insurance claims
+     * @notice Allows the owner to fund the contract to ensure there are sufficient funds for payouts
      */
     function fundContract() external payable onlyOwner {
         // Simply accepts ETH sent to the contract
@@ -119,6 +153,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
 
     /**
      * @dev Withdraw funds from the contract (owner only)
+     * @notice Allows the owner to withdraw all funds from the contract
      */
     function withdrawFunds() external onlyOwner {
         SafeTransferLib.safeTransferAllETH(owner());
@@ -129,6 +164,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
      * @param flightNumber IATA flight number
      * @param date Flight date in YYYY-MM-DD format
      * @return Information about the flight
+     * @notice Retrieve information about a specific flight by its number and date
      */
     function getFlightInfo(string memory flightNumber, string memory date) external view returns (FlightInfo memory) {
         return flightData[flightNumber][date];
@@ -138,6 +174,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
      * @dev Get flight information by requestId
      * @param requestId Unique identifier for the request
      * @return Information about the flight
+     * @notice Retrieve flight information using the Oracle request ID
      */
     function getFlightInfoById(bytes32 requestId) external view returns (FlightInfo memory) {
         FlightId memory flightId = flightIds[requestId];
@@ -145,10 +182,30 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
     }
 
     /**
+     * @dev Get the last request by the claimer
+     * @return The last request ID and flight information
+     * @notice Retrieve the caller's most recent claim request and its corresponding flight information
+     */
+    function getLastRequest() external view returns (bytes32, FlightInfo memory) {
+        FlightInfo memory flight = flightData[flightIds[lastRequestId].flightNumber][flightIds[lastRequestId].date];
+        return (lastRequestId, flight);
+    }
+
+    /*
+     * @dev Get the oracle fee
+     * @return The oracle fee
+     * @notice Get the fee required to make a request to the Oracle
+     */
+    function getOracleFee() external view returns (uint256) {
+        return oracle.requestFee();
+    }
+
+    /**
      * @dev Implementation of _handleResponse from RestApiClient
      * @param requestId Unique identifier for the request
      * @param success Whether the API request was successful
      * @param data ABI-encoded response data according to the requested fields
+     * @notice Internal function that processes the Oracle's response and pays out claims if applicable
      */
     function _handleResponse(bytes32 requestId, bool success, bytes calldata data) internal override {
         address claimer = claimers[requestId];
@@ -162,8 +219,13 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         if (flight.claimTimestamp != 0) {
             return;
         }
+        flight.landed = isLanded;
         flight.delayed = isLanded && isDelayed;
-        flight.delayMinutes = delayMinutes;
+        if (isLanded) {
+            flight.delayMinutes = delayMinutes;
+        }
+        flight.flightNumber = flightNumber;
+        flight.date = date;
 
         emit FlightDelayVerified(flightNumber, date, flight.delayed, delayMinutes);
         if (flight.delayed) {
