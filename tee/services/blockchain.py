@@ -77,6 +77,8 @@ class BlockchainService:
             public_key = await self.oracle_contract.functions.getPublicKey().call()
             if public_key != crypto_manager._public_key:
                 logger.error("Public key mismatch between contract and crypto manager. Expected %s, got %s", crypto_manager._public_key, public_key)
+            else:
+                logger.info("Public key matches between contract and crypto manager")
         except Exception as e:
             logger.warning(f"Could not retrieve Oracle public key: {str(e)}")
         
