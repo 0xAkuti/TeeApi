@@ -5,8 +5,10 @@ TeeAPI is a Trusted Execution Environment (TEE) powered bridge between blockchai
 ## 📑 Table of Contents
 
 - [Overview](#overview)
+- [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Technology Stack](#technology-stack)
+- [Links](#links)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -18,9 +20,7 @@ TeeAPI is a Trusted Execution Environment (TEE) powered bridge between blockchai
   - [Handling Responses](#handling-responses)
   - [Using Encryption Features](#using-encryption-features)
   - [Using Conditional Verification](#using-conditional-verification)
-- [Architecture](#architecture)
-- [Security Considerations](#security-considerations)
-- [License](#license)
+
 
 ## 🔍 Overview
 
@@ -31,6 +31,16 @@ TeeAPI solves a fundamental problem in blockchain technology: accessing off-chai
 3. Receive the data on-chain in a secure, tamper-proof way
 
 This approach eliminates centralized oracle dependencies while providing smart contracts with secure access to the vast world of web APIs.
+
+## 🏗️ Architecture
+
+TeeAPI operates in three key steps:
+
+1. **Request**: A smart contract calls the Oracle contract to request external API data
+2. **Execution**: The TEE service monitors for request events, makes the API call, and processes the response
+3. **Fulfillment**: The TEE service submits the API response back to the Oracle contract, which forwards it to the requesting contract
+
+The system uses TEEs to ensure that the API requests and response processing happen in a tamper-proof environment, maintaining the security and integrity of the data.
 
 ## 📂 Project Structure
 
@@ -45,6 +55,7 @@ TeeAPI/
 │   │   ├── interfaces/   # Contract interfaces
 │   │   └── examples/     # Example consumer contracts
 │   └── test/             # Foundry test files
+├── website/              # FrontEnd code
 └── tee/                  # TEE Service
     ├── main.py           # Service entry point
     ├── services/         # Core services implementation
@@ -53,10 +64,7 @@ TeeAPI/
     │   └── response_processor.py # Response processing logic
     ├── models/           # Data models
     └── utils/            # Utility functions
-        ├── crypto.py     # Cryptography utilities
-        ├── encrypt_value.py # Tool for encrypting values for contracts
-        ├── generate_keypair.py # Tool for generating Ethereum keypairs
-        └── set_public_key.py # Tool for setting public key in contract
+        └── crypto.py     # Cryptography utilities
 ```
 
 ## 🛠️ Technology Stack
@@ -73,6 +81,13 @@ TeeAPI/
 - **eciespy** - ECIES encryption for secp256k1 keys
 - **aiohttp** - Asynchronous HTTP client/server
 - **Docker** - Containerization for easy deployment
+
+## 🌐 Links
+- [Landing Page](https://teeapi.aifusionlabs.xyz) 
+- [Deployed TeeAPI Oracle (example on Base Sepolia)](https://sepolia.basescan.org/address/0xb345d96d8f1ef2fb463a82a15e2a2ea066f003c0)
+- [Example Use Case implementation](https://sepolia.basescan.org/address/0x08B761d3D9300e56CaC0c85A438C9f6aC2e7DCd3)
+- [Interact with our Demo Use Case a flight delay insurance](https://abi.ninja/0x08B761d3D9300e56CaC0c85A438C9f6aC2e7DCd3/84532?methods=initiateClaim)
+- [Phala deployment and attestation](https://40f45b81d72df1a300385dc591eb04007a9fe7d7-8090.dstack-prod5.phala.network)
 
 ## 🚀 Getting Started
 
@@ -153,24 +168,6 @@ contract MyConsumer is RestApiClient {
 }
 ```
 
-2. Implement the required callback function:
-
-```solidity
-function _handleResponse(bytes32 requestId, bool success, bytes calldata data) 
-    internal 
-    override 
-{
-    // Handle the response data
-    require(success, "API request failed");
-    
-    // Decode the response data based on your responseFields
-    (uint256 value1, string memory value2) = abi.decode(data, (uint256, string));
-    
-    // Use the data in your contract logic
-    // ...
-}
-```
-
 ### Making API Requests
 
 Create a function to make API requests:
@@ -236,19 +233,13 @@ function _handleResponse(bytes32 requestId, bool success, bytes calldata data)
 
 For secure API requests that contain sensitive data like API keys, you can use the Ethereum-based ECIES encryption:
 
-1. Get the Oracle's Ethereum public key and address:
-```solidity
-string memory publicKey = oracle.getPublicKey();
-address keyAddress = oracle.getPublicKeyAddress();
-```
-
-2. Encrypt values off-chain using the `encrypt_value.py` utility:
+1. Encrypt values off-chain using the `encrypt_value.py` utility:
 ```bash
 python tee/utils/encrypt_value.py "my-api-key" --oracle 0x<oracle_address> --provider http://localhost:8545
 ```
 or `/encrypt` endpoint of the API.
 
-3. Use the encrypted value in your API request:
+2. Use the encrypted value in your API request:
 ```solidity
 // Create query parameters with an encrypted API key
 IOracle.KeyValue[] memory queryParams = new IOracle.KeyValue[](1);
@@ -342,38 +333,3 @@ function _handleResponse(bytes32 requestId, bool success, bytes calldata data)
 
 5. Privacy Preservation:
    When using conditions, the actual values from the API are never exposed on-chain, only the boolean result of the condition check. This allows for sensitive data to be verified in the TEE without being publicly revealed.
-
-## 🏗️ Architecture
-
-TeeAPI operates in three key steps:
-
-1. **Request**: A smart contract calls the Oracle contract to request external API data
-2. **Execution**: The TEE service monitors for request events, makes the API call, and processes the response
-3. **Fulfillment**: The TEE service submits the API response back to the Oracle contract, which forwards it to the requesting contract
-
-The system uses TEEs to ensure that the API requests and response processing happen in a tamper-proof environment, maintaining the security and integrity of the data.
-
-## 🔒 Security Considerations
-
-- The Oracle uses a role-based access control system to ensure only authorized TEEs can submit responses
-- Response data is processed in a secure TEE environment
-- Smart contracts should validate API responses before using them for critical operations
-- Be mindful of gas costs when processing large responses
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-### Using the API Server
-
-The TeeAPI includes a simple API server that provides an endpoint for encrypting values. The API server is available at `http://localhost:3000` when running locally.
-
-#### API Endpoints
-
-- **GET /encrypt** - Encrypt a value
-  ```
-  GET /encrypt?value=sensitive_data_to_encrypt
-  ```
-  Response: The encrypted value as plain text
-  
-  This endpoint allows clients to encrypt sensitive data that can be sent to the blockchain and later decrypted inside the TEE service.
