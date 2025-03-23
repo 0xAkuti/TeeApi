@@ -34,7 +34,7 @@ class CryptoManager:
         
         fixed_private_key = os.getenv('PRIVATE_KEY')
         if fixed_private_key:
-            logger.info("Initializing cryptography manager with fixed private key")
+            logger.warning("Initializing cryptography manager with fixed private key")
             self._private_key = fixed_private_key
             return
         else:

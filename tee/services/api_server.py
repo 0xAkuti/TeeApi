@@ -101,7 +101,32 @@ class ApiServer:
             except Exception as e:
                 logger.error(f"Failed to get key info: {str(e)}")
                 raise HTTPException(status_code=500, detail=f"Failed to get key info: {str(e)}")
-    
+
+        @self.app.get("/encrypt/{value}")
+        async def encrypt(value: str):
+            """
+            Simple endpoint to encrypt a value
+            
+            Args:
+                value: The value to encrypt passed as a query parameter
+                
+            Returns:
+                The encrypted value
+            """
+            try:
+                if not crypto_manager._initialized:
+                    raise HTTPException(status_code=503, detail="Crypto manager not initialized")
+                
+                # Encrypt the value
+                encrypted_value = crypto_manager.encrypt_for_contract(value)
+                
+                # Return just the encrypted value as plain text
+                return encrypted_value
+            except Exception as e:
+                logger.error(f"Failed to encrypt value: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"Failed to encrypt value: {str(e)}")
+
+
     async def start(self):
         """Start the API server"""
         logger.info(f"Starting API server on {self.host}:{self.port}")
