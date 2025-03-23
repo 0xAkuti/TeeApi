@@ -26,7 +26,7 @@ contract DeployFlightDelayInsurance is Script {
         FlightDelayInsurance insurance = new FlightDelayInsurance(oracleAddress);
 
         // Fund the contract with initial capital
-        uint256 initialFunding = 1 ether; // 10 payouts
+        uint256 initialFunding = 0.05 ether; // 50 payouts
         insurance.fundContract{value: initialFunding}();
 
         console.log("FlightDelayInsurance deployed at:", address(insurance));
@@ -68,7 +68,7 @@ contract ClaimFlightDelayInsurance is Script {
         vm.startBroadcast();
 
         // Check flight delay status
-        bytes32 requestId = insurance.checkFlightDelay{value: requestFee}(flightNumber);
+        bytes32 requestId = insurance.initiateClaim{value: requestFee}(flightNumber);
 
         // Log the request ID
         console.log("Request sent! Request ID:", vm.toString(requestId));

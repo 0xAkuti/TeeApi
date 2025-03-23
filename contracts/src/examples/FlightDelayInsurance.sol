@@ -30,7 +30,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
     }
 
     // Store flight information by flight number and date
-    mapping(FlightId => FlightInfo) private flightData;
+    mapping(string => mapping(string => FlightInfo)) private flightData;
 
     // claimer address by requestId
     mapping(bytes32 => address) private claimers;
@@ -106,7 +106,7 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
         });
 
         claimers[requestId] = msg.sender;
-        flightIds[requestId] = FlightId({flightNumber: flightNumber, date: date});
+        flightIds[requestId] = FlightId({flightNumber: flightNumber, date: ""});
         return requestId;
     }
 
@@ -174,5 +174,6 @@ contract FlightDelayInsurance is RestApiClient, Ownable {
             emit ClaimPaid(claimer, flightNumber, date, INSURANCE_PAYOUT);
         }
         flightData[flightNumber][date] = flight;
+        flightIds[requestId].date = date;
     }
 }
