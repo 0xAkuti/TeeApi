@@ -5,6 +5,7 @@ This module provides a service for interacting with the blockchain.
 """
 import asyncio
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Callable, List, Dict, Any, Optional, Awaitable, Union
@@ -170,13 +171,14 @@ class BlockchainService:
         logger.info(f"Submitting response for request {request_id}")
         
         try:
-            # Get the TEE key for signing from DStack
-            derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
-            private_key_bytes = derive_key.toBytes(32)  # Get limited private key bytes
-            
-            # overwrite for testing, TODO remove later
-            private_key_bytes = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97" # anivl key
-            
+            fixed_private_key = os.getenv('PRIVATE_KEY')
+            if fixed_private_key:
+                private_key_bytes = fixed_private_key
+            else:
+                # Get the TEE key for signing from DStack
+                derive_key = await self.dstack_client.derive_key('/', 'tee-oracle')
+                private_key_bytes = derive_key.toBytes(32)  # Get limited private key bytes
+
             # Get account from private key
             account = self.web3.eth.account.from_key(private_key_bytes)
             logger.info(f"Using derived address for signing: {account.address}")

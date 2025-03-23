@@ -31,29 +31,30 @@ class CryptoManager:
         """Initialize cryptography with DStack private key"""
         if self._initialized:
             return
-            
-        logger.info("Initializing cryptography manager with DStack key")
         
-        # Get the private key from DStack
-        try:
-            derive_key = await self._dstack_client.derive_key('/', 'tee-oracle')
-            private_key_bytes = derive_key.toBytes(32)
+        fixed_private_key = os.getenv('PRIVATE_KEY')
+        if fixed_private_key:
+            logger.info("Initializing cryptography manager with fixed private key")
+            self._private_key = fixed_private_key
+            return
+        else:
+            logger.info("Initializing cryptography manager with DStack key")
             
-            # Set the private key as hex string
-            self._private_key = '0x' + private_key_bytes.hex()
-            
-            # overwrite for testing, TODO remove later
-            self._private_key = "0xdbda1821b80551c9d65939329250298aa3472ba22feea921c0cf5d620ea67b97" # anivl key
-            
-            # Derive address from private key
-            account = Web3().eth.account.from_key(self._private_key)
-            self._address = account.address
-            
-            self._initialized = True
-            logger.info(f"Cryptography manager initialized with DStack key for address {self._address}")
-        except Exception as e:
-            logger.error(f"Failed to initialize cryptography manager: {str(e)}", exc_info=True)
-            raise
+            # Get the private key from DStack
+            try:
+                derive_key = await self._dstack_client.derive_key('/', 'tee-oracle')
+                private_key_bytes = derive_key.toBytes(32)
+                self._private_key = '0x' + private_key_bytes.hex()
+
+            except Exception as e:
+                logger.error(f"Failed to initialize cryptography manager: {str(e)}", exc_info=True)
+                raise
+        # Derive address from private key
+        account = Web3().eth.account.from_key(self._private_key)
+        self._address = account.address
+        
+        self._initialized = True
+        logger.info(f"Cryptography manager initialized for address {self._address}")
     
     def set_public_key(self, public_key: str) -> None:
         """
