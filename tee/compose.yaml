@@ -5,7 +5,7 @@ services:
     ports:
       - 3000:3000
     environment:
-      - DSTACK_SIMULATOR_ENDPOINT=http://host.docker.internal:8090
+      # - DSTACK_SIMULATOR_ENDPOINT=http://host.docker.internal:8090
       # Uncomment and fill these values to start the oracle automatically
       # - WEB3_PROVIDER=https://goerli.infura.io/v3/your_key
       # - ORACLE_ADDRESS=0x1234...
