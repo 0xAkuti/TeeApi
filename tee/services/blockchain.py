@@ -187,14 +187,20 @@ class BlockchainService:
             request_id_bytes = Web3.to_bytes(hexstr=request_id)
             
             # Create transaction data
+            gas_price = await self.web3.eth.gas_price
+            # Set priority fee to 80% of base fee to ensure it's always lower
+            priority_fee = min(Web3.to_wei(0.1, 'gwei'), int(gas_price * 0.8))
+            # Set max fee to base fee plus a 20% buffer
+            max_fee = int(gas_price * 1.2)
+            
             tx_data = await self.oracle_contract.functions.fulfillRestApiRequest(
                 request_id_bytes,
                 response_data
             ).build_transaction({
                 'from': account.address, 
                 'gas': 500000, # TODO estimate or get from request and how much was paid for callback gas
-                'maxFeePerGas': await self.web3.eth.gas_price,
-                'maxPriorityFeePerGas': Web3.to_wei(1, 'gwei'),  # Add priority fee, maybe estimate as well
+                'maxFeePerGas': max_fee,
+                'maxPriorityFeePerGas': priority_fee,
                 'nonce': await self.web3.eth.get_transaction_count(account.address),
                 'chainId': await self.web3.eth.chain_id,
                 'value': 0
