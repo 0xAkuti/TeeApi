@@ -66,9 +66,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# DStack simulator endpoint - only needed for local development, not required in production environments like Phala
-ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
-
 # Set default values for Oracle configuration
 ENV WEB3_PROVIDER="http://host.docker.internal:8545"
 ENV ORACLE_ADDRESS="0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35"
