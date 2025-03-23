@@ -25,6 +25,7 @@ logger = logging.getLogger("tee-oracle")
 from services.blockchain import BlockchainService
 from services.api_client import ApiClient
 from services.response_processor import ResponseProcessor
+from services.api_server import ApiServer
 from utils.crypto import crypto_manager
 
 
@@ -88,6 +89,10 @@ async def main():
                         help='Oracle contract address')
     parser.add_argument('--poll-interval', type=int, default=os.environ.get('POLL_INTERVAL', 10),
                         help='Polling interval in seconds')
+    parser.add_argument('--host', type=str, default=os.environ.get('HOSTNAME', '0.0.0.0'),
+                        help='Host to run the API server on')
+    parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', 3000)),
+                        help='Port to run the API server on')
     args = parser.parse_args()
     
     if not args.oracle_address:
@@ -103,15 +108,19 @@ async def main():
         logger.error(f"Failed to initialize crypto manager: {str(e)}")
         return 1
     
-    # Create services using the existing components
+    # Create services
     blockchain_service = BlockchainService(args.provider, args.oracle_address)
     api_client = ApiClient()
     processor = ResponseProcessor()
+    api_server = ApiServer(args.host, args.port)
+    
+    # Create tasks for the API server and Oracle service
+    api_server_task = asyncio.create_task(api_server.start())
+    oracle_task = asyncio.create_task(oracle_loop(blockchain_service, api_client, processor, args.poll_interval))
     
     try:
-        # Run the oracle service
-        logger.info(f"Starting oracle service with provider {args.provider} and contract {args.oracle_address}")
-        await oracle_loop(blockchain_service, api_client, processor, args.poll_interval)
+        # Wait for both tasks to complete (they run indefinitely unless interrupted)
+        await asyncio.gather(oracle_task, api_server_task)
     except KeyboardInterrupt:
         logger.info("Stopping TEE Oracle service...")
     except Exception as e:
