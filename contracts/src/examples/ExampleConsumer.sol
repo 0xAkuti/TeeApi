@@ -102,7 +102,7 @@ contract ExampleConsumer is RestApiClient {
         // Make the request
         bytes32 requestId = makeRequest({
             method: IOracle.HttpMethod.GET,
-            url: "BCWo3uO2/X7ZxAvby2mPq0oRGH35gMU3blHlm5Ow/vCwbNkBCv6v750Y7MNtIBmqlHxI6iKdVKEOca8pwpUlUgu1G6J5iEq2S6qNXXNw1sxAkJn8qLMiMjQ+nwQP/HQDwjRGRmY9lF5ozNPjDUf+aQjQ2ak0RS/gG1cFQzsEv3gu1S1V53qUu7KP2Q==",
+            url: "BFFGF49yHJ3+/VHffulfEp8KdpMJTIdnL+jQlq1EWwikeR5JFD1Yt2ezr3PsC1gE/7WYi78zmU6jFOlyXoUevco2LpA2hNhlq90spxKa+3v21czXHMFcXV+yBJzcofk+mKBkYYn0f4gJ5WDJCmFfRThirMmYqZQrq41JpSw6uEUlRN9CatVJ6hI4Jg==",
             urlEncrypted: true,
             headers: new IOracle.KeyValue[](0),
             queryParams: queryParams,
@@ -136,8 +136,11 @@ contract ExampleConsumer is RestApiClient {
         IOracle.Condition memory completedCondition =
             IOracle.Condition({operator: "eq", value: "false", encrypted: false});
 
-        IOracle.Condition memory titleContainsCondition =
-            IOracle.Condition({operator: "contains", value: "aut", encrypted: false});
+        IOracle.Condition memory titleContainsCondition = IOracle.Condition({
+            operator: "contains",
+            value: "BKw/jwjyTFM6STv8BqGgW8A8m4tcM+R/JprRB0dWsVOWLLnBUNfHQJwF9xc3pKnkt4R7Z/T2stYNQ7aVoyShiUKgf5udvEYcTJMEixp+F+itzqpiOoJ+9rbP1864fel1nLl2bg==",
+            encrypted: true
+        });
 
         // Create response fields with conditions to verify rather than extract values
         IOracle.ResponseField[] memory responseFields = new IOracle.ResponseField[](3);

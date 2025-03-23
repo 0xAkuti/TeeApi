@@ -13,7 +13,7 @@ contract SetOraclePublicKey is Script {
     address constant DEFAULT_ORACLE_ADDRESS = 0x700b6A60ce7EaaEA56F065753d8dcB9653dbAD35;
     address constant DEFUALT_PUBLIC_KEY_ADDRESS = 0x23618e81E3f5cdF7f54C3d65f7FBc0aBf5B21E8f;
     string constant DEFAULT_PUBLIC_KEY =
-        "0x3a6a03ac01d96bca420f8a41d4d5a97234457fa2850eba6e85c416b278b8d0f6dfd4fb9ea3421d88ee1a9f3dd9538bc04d88a3023710ecd0548f80502108a394";
+        "0x931e7fda8da226f799f791eefc9afebcd7ae2b1b19a03c5eaa8d72122d9fe74d887a3962ff861190b531ab31ee82f0d7f255dfe3ab73ca627bd70ab3d1cbb417";
 
     function run() external {
         // Get the Oracle address from command line or environment variable
