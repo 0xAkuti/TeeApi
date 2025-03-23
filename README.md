@@ -16,6 +16,8 @@ TeeAPI is a Trusted Execution Environment (TEE) powered bridge between blockchai
   - [Using the Oracle in Your Smart Contracts](#using-the-oracle-in-your-smart-contracts)
   - [Making API Requests](#making-api-requests)
   - [Handling Responses](#handling-responses)
+  - [Using Encryption Features](#using-encryption-features)
+  - [Using Conditional Verification](#using-conditional-verification)
 - [Architecture](#architecture)
 - [Security Considerations](#security-considerations)
 - [License](#license)
@@ -51,6 +53,10 @@ TeeAPI/
     │   └── response_processor.py # Response processing logic
     ├── models/           # Data models
     └── utils/            # Utility functions
+        ├── crypto.py     # Cryptography utilities
+        ├── encrypt_value.py # Tool for encrypting values for contracts
+        ├── generate_keypair.py # Tool for generating Ethereum keypairs
+        └── set_public_key.py # Tool for setting public key in contract
 ```
 
 ## 🛠️ Technology Stack
@@ -64,6 +70,7 @@ TeeAPI/
 - **Python** - Core language for the TEE service
 - **dstack-sdk** - SDK for TEE attestation and secure key management
 - **Web3.py** - Ethereum interaction library
+- **eciespy** - ECIES encryption for secp256k1 keys
 - **aiohttp** - Asynchronous HTTP client/server
 - **Docker** - Containerization for easy deployment
 
@@ -107,7 +114,9 @@ anvil
 forge script script/DeployOracle.s.sol --broadcast --rpc-url http://localhost:8545
 ```
 
-3. Run the TEE service:
+3. Generate and set an Ethereum keypair (see [Setting Up Public Keys](#setting-up-public-keys) section for details)
+
+4. Run the TEE service:
 ```bash
 docker run --rm -p 3000:3000 \
   -e WEB3_PROVIDER="http://host.docker.internal:8545" \
@@ -187,9 +196,11 @@ function requestExternalData() external payable returns (bytes32) {
     bytes32 requestId = makeRequest({
         method: IOracle.HttpMethod.GET,
         url: "https://api.example.com/endpoint",
+        urlEncrypted: false,
         headers: new IOracle.KeyValue[](0),
         queryParams: queryParams,
         body: "",
+        bodyEncrypted: false,
         responseFields: responseFields
     });
 
@@ -221,6 +232,117 @@ function _handleResponse(bytes32 requestId, bool success, bytes calldata data)
 }
 ```
 
+### Using Encryption Features
+
+For secure API requests that contain sensitive data like API keys, you can use the Ethereum-based ECIES encryption:
+
+1. Get the Oracle's Ethereum public key and address:
+```solidity
+string memory publicKey = oracle.getPublicKey();
+address keyAddress = oracle.getPublicKeyAddress();
+```
+
+2. Encrypt values off-chain using the `encrypt_value.py` utility:
+```bash
+python tee/utils/encrypt_value.py "my-api-key" --oracle 0x<oracle_address> --provider http://localhost:8545
+```
+or `/encrypt` endpoint of the API.
+
+3. Use the encrypted value in your API request:
+```solidity
+// Create query parameters with an encrypted API key
+IOracle.KeyValue[] memory queryParams = new IOracle.KeyValue[](1);
+queryParams[0] = IOracle.KeyValue({
+    key: "api_key", 
+    value: "encrypted-value-from-script", 
+    encrypted: true
+});
+
+// Make the request
+bytes32 requestId = makeRequest({
+    method: IOracle.HttpMethod.GET,
+    url: "https://api.example.com/endpoint",
+    urlEncrypted: false,
+    headers: headers,
+    queryParams: queryParams,
+    body: "",
+    bodyEncrypted: false,
+    responseFields: responseFields
+});
+```
+
+### Using Conditional Verification
+
+The conditional verification feature allows you to verify values against conditions without revealing the actual data on-chain. This is useful for privacy-preserving verifications:
+
+1. Define a response field with a condition:
+```solidity
+// Define a condition to check if bank balance > threshold
+IOracle.Condition memory condition = IOracle.Condition({
+    operator: "gt",  // greater than
+    value: "1000",   // threshold value to check against
+    encrypted: false // can be encrypted for privacy
+});
+
+// Set up the response field with condition
+IOracle.ResponseField[] memory responseFields = new IOracle.ResponseField[](1);
+responseFields[0] = IOracle.ResponseField({
+    path: "$.account.balance", // JSON path to the balance field
+    responseType: "uint256",   // Type of the data being compared
+    condition: condition       // The condition to check
+});
+```
+
+2. Make the request as usual:
+```solidity
+bytes32 requestId = makeRequest({
+    method: IOracle.HttpMethod.GET,
+    url: "https://api.bank.example/accounts/123",
+    urlEncrypted: false,
+    headers: headers,
+    queryParams: new IOracle.KeyValue[](0),
+    body: "",
+    bodyEncrypted: false,
+    responseFields: responseFields
+});
+```
+
+3. Handle the response (which will now be a boolean result):
+```solidity
+function _handleResponse(bytes32 requestId, bool success, bytes calldata data) 
+    internal 
+    override 
+{
+    require(success, "API request failed");
+    
+    // Decode the boolean verification result
+    bool isConditionMet = abi.decode(data, (bool));
+    
+    // Use the verification result in your logic
+    if (isConditionMet) {
+        // Condition was met (e.g., balance > threshold)
+        // Proceed with operation that requires this condition
+    } else {
+        // Condition was not met
+        // Handle the failure case
+    }
+}
+```
+
+4. Available Condition Operators:
+   - `"eq"` or `"equals"`: Equal to
+   - `"neq"` or `"not_equals"`: Not equal to
+   - `"gt"` or `"greater_than"`: Greater than
+   - `"gte"` or `"greater_than_or_equals"`: Greater than or equal to
+   - `"lt"` or `"less_than"`: Less than
+   - `"lte"` or `"less_than_or_equals"`: Less than or equal to
+   - `"contains"`: String contains substring (for string types)
+   - `"startswith"`: String starts with prefix (for string types)
+   - `"endswith"`: String ends with suffix (for string types)
+
+5. Privacy Preservation:
+   When using conditions, the actual values from the API are never exposed on-chain, only the boolean result of the condition check. This allows for sensitive data to be verified in the TEE without being publicly revealed.
+
 ## 🏗️ Architecture
 
 TeeAPI operates in three key steps:
@@ -241,3 +363,17 @@ The system uses TEEs to ensure that the API requests and response processing hap
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+### Using the API Server
+
+The TeeAPI includes a simple API server that provides an endpoint for encrypting values. The API server is available at `http://localhost:3000` when running locally.
+
+#### API Endpoints
+
+- **GET /encrypt** - Encrypt a value
+  ```
+  GET /encrypt?value=sensitive_data_to_encrypt
+  ```
+  Response: The encrypted value as plain text
+  
+  This endpoint allows clients to encrypt sensitive data that can be sent to the blockchain and later decrypted inside the TEE service.
