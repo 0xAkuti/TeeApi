@@ -40,8 +40,8 @@ class ApiClient:
         
         # Get the full URL with query parameters
         url = request.get_full_url()
-        url_for_logging = "<REDACTED>" if orig_request.urlEncrypted else url
-        logger.info(f"Making {request.method.name} request to {url_for_logging} ...")
+        url_for_logging = "<REDACTED>" if orig_request.urlEncrypted else request.url
+        logger.info(f"Making {request.method.name} request to {url_for_logging}")
         
         # Prepare headers
         headers = request.get_headers_dict()
