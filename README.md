@@ -2,26 +2,6 @@
 
 TeeAPI is a Trusted Execution Environment (TEE) powered bridge between blockchain smart contracts and external REST APIs. It enables smart contracts to securely consume data from external APIs while maintaining decentralization and security principles.
 
-## 📑 Table of Contents
-
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Technology Stack](#technology-stack)
-- [Links](#links)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Running the Oracle Service](#running-the-oracle-service)
-  - [Testing with Foundry](#testing-with-foundry)
-- [Developer Guide](#developer-guide)
-  - [Using the Oracle in Your Smart Contracts](#using-the-oracle-in-your-smart-contracts)
-  - [Making API Requests](#making-api-requests)
-  - [Handling Responses](#handling-responses)
-  - [Using Encryption Features](#using-encryption-features)
-  - [Using Conditional Verification](#using-conditional-verification)
-
-
 ## 🔍 Overview
 
 TeeAPI solves a fundamental problem in blockchain technology: accessing off-chain data in a secure, decentralized manner. By utilizing Trusted Execution Environments (TEEs), TeeAPI enables smart contracts to:
