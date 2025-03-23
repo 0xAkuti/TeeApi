@@ -27,6 +27,11 @@ COPY . .
 # From the base builder, create the final image
 FROM python:${PYTHON_VERSION}-slim-bookworm
 
+# Add metadata labels
+LABEL org.opencontainers.image.title="TeeAPI Oracle"
+LABEL org.opencontainers.image.description="Trusted Execution Environment API Oracle Service"
+LABEL org.opencontainers.image.version="0.0.1"
+
 # Keeps Python from buffering stdout and stderr
 ENV PYTHONUNBUFFERED=1
 
@@ -60,6 +65,8 @@ USER appuser
 EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
+
+# DStack simulator endpoint - only needed for local development, not required in production environments like Phala
 ENV DSTACK_SIMULATOR_ENDPOINT="http://host.docker.internal:8090"
 
 # Set default values for Oracle configuration
