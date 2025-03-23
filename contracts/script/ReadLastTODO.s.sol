@@ -25,5 +25,11 @@ contract ReadLastTODO is Script {
         console.log("Last TODO userId:", lastTODOData.userId);
         console.log("Last TODO title:", lastTODOData.title);
         console.log("Last TODO completed:", lastTODOData.completed);
+
+        // read verification result
+        ExampleConsumer.VerificationResults memory verificationResults = consumer.getVerificationResults();
+        console.log("Verification result userId:", verificationResults.userIdIsOne);
+        console.log("Verification result completed:", verificationResults.isNotCompleted);
+        console.log("Verification result title:", verificationResults.titleContainsProvident);
     }
 }
