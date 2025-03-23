@@ -343,6 +343,28 @@
                                     "name": "responseType",
                                     "type": "string",
                                     "internalType": "string"
+                                },
+                                {
+                                    "name": "condition",
+                                    "type": "tuple",
+                                    "internalType": "struct IOracle.Condition",
+                                    "components": [
+                                        {
+                                            "name": "operator",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "value",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "encrypted",
+                                            "type": "bool",
+                                            "internalType": "bool"
+                                        }
+                                    ]
                                 }
                             ]
                         }
@@ -604,6 +626,28 @@
                                     "name": "responseType",
                                     "type": "string",
                                     "internalType": "string"
+                                },
+                                {
+                                    "name": "condition",
+                                    "type": "tuple",
+                                    "internalType": "struct IOracle.Condition",
+                                    "components": [
+                                        {
+                                            "name": "operator",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "value",
+                                            "type": "string",
+                                            "internalType": "string"
+                                        },
+                                        {
+                                            "name": "encrypted",
+                                            "type": "bool",
+                                            "internalType": "bool"
+                                        }
+                                    ]
                                 }
                             ]
                         }
